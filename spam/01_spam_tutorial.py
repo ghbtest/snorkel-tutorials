@@ -102,12 +102,17 @@
 
 # %% {"tags": ["md-exclude"]}
 # %matplotlib inline
-
+fp="/Users/robinlu/Library/CloudStorage/OneDrive-UNIPHORESOFTWARESYSTEMSPVTLTD/Data_Programming/snorkel-tutorials/"
 import os
 
 # Make sure we're running from the spam/ directory
 if os.path.basename(os.getcwd()) == "snorkel-tutorials":
     os.chdir("spam")
+else: 
+    print (os.getcwd())
+
+os.getcwd()
+os.chdir(fp+"spam")
 
 # Turn off TensorFlow logging messages
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -124,7 +129,7 @@ import pandas as pd
 
 DISPLAY_ALL_TEXT = False
 
-pd.set_option("display.max_colwidth", 0 if DISPLAY_ALL_TEXT else 50)
+pd.set_option("display.max_colwidth", 0 if DISPLAY_ALL_TEXT else 100)
 
 # %% [markdown] {"tags": ["md-exclude"]}
 # This next cell makes sure a spaCy English model is downloaded.
@@ -135,10 +140,16 @@ pd.set_option("display.max_colwidth", 0 if DISPLAY_ALL_TEXT else 50)
 # ! python -m spacy download en_core_web_sm
 
 # %%
-from utils import load_spam_dataset
+import sys
+sys.path.insert(0, '/Users/robinlu/Library/CloudStorage/OneDrive-UNIPHORESOFTWARESYSTEMSPVTLTD/Data_Programming/snorkel-tutorials/spam')
 
-df_train, df_test = load_spam_dataset()
+import utils as us
 
+# from utils import load_spam_dataset
+
+df_train, df_test = us.load_spam_dataset()
+type(df_train)
+df_train.columns #['author', 'date', 'text', 'label', 'video']
 # We pull out the label vectors for ease of use later
 Y_test = df_test.label.values
 
@@ -286,7 +297,8 @@ print(f"check coverage: {coverage_check * 100:.1f}%")
 # %%
 from snorkel.labeling import LFAnalysis
 
-LFAnalysis(L=L_train, lfs=lfs).lf_summary()
+ls0=LFAnalysis(L=L_train, lfs=lfs).lf_summary()
+ls0
 
 # %% [markdown]
 # We might want to pick the `check` rule, since `check` has higher coverage. Let's take a look at 10 random `train` set data points where `check` labeled `SPAM` to see if it matches our intuition or if we can identify some false positives.
@@ -301,8 +313,10 @@ df_train.iloc[L_train[:, 1] == SPAM].sample(10, random_state=1)
 
 # %%
 from snorkel.analysis import get_label_buckets
-
+L_train
 buckets = get_label_buckets(L_train[:, 0], L_train[:, 1])
+type(buckets)
+buckets
 df_train.iloc[buckets[(ABSTAIN, SPAM)]].sample(10, random_state=1)
 
 # %% [markdown]
@@ -323,7 +337,7 @@ import re
 def regex_check_out(x):
     return SPAM if re.search(r"check.*out", x.text, flags=re.I) else ABSTAIN
 
-
+regex_check_out("checkout")
 # %% [markdown]
 # Again, let's generate our label matrices and see how we do.
 
@@ -334,8 +348,9 @@ applier = PandasLFApplier(lfs=lfs)
 L_train = applier.apply(df=df_train)
 
 # %%
-LFAnalysis(L=L_train, lfs=lfs).lf_summary()
-
+ls1=LFAnalysis(L=L_train, lfs=lfs).lf_summary()
+ls1
+ls0
 # %% [markdown]
 # We've split the difference in `train` set coverage—this looks promising!
 # Let's verify that we corrected our false positive from before.
@@ -417,8 +432,8 @@ applier = PandasLFApplier(lfs)
 L_train = applier.apply(df_train)
 
 # %%
-LFAnalysis(L_train, lfs).lf_summary()
-
+l2=LFAnalysis(L_train, lfs).lf_summary()
+l2
 # %% [markdown]
 # **Again, these LFs aren't perfect—note that the `textblob_subjectivity` LF has fairly high coverage and could have a high rate of false positives. We'll rely on Snorkel's `LabelModel` to estimate the labeling function accuracies and reweight and combine their outputs accordingly.**
 
@@ -785,3 +800,8 @@ print(f"Test Accuracy: {sklearn_model.score(X=X_test, y=Y_test) * 100:.1f}%")
 #
 # and more!
 # You can also visit the [Snorkel website](https://snorkel.org) or [Snorkel API documentation](https://snorkel.readthedocs.io) for more info!
+
+#%% gsearch
+os.environ["PYTHONHASHSEED"]
+pd.set_option("display.max_colwidth"
+spacy OSError: [E050] Can't find model 'en_core_web_sm'

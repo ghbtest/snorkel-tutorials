@@ -71,6 +71,10 @@ SPAM = 1
 # Keyword matches:
 
 # %%
+import snorkel
+import importlib
+importlib.reload(snorkel)
+
 from snorkel.labeling import labeling_function
 
 
@@ -137,7 +141,8 @@ def lf_textblob_polarity(x):
 # We use the `LabelModel` to automatically estimate their accuracies and correlations, reweight and combine their labels, and produce our final set of clean, integrated training labels:
 
 # %%
-from snorkel.labeling.model import LabelModel
+# from snorkel.labeling.model import LabelModel
+from snorkel.labeling.model.label_model import LabelModel
 from snorkel.labeling import PandasLFApplier
 
 # Define the set of labeling functions (LFs)
@@ -146,6 +151,10 @@ lfs = [lf_keyword_my, lf_regex_check_out, lf_short_comment, lf_textblob_polarity
 # Apply the LFs to the unlabeled training data
 applier = PandasLFApplier(lfs)
 L_train = applier.apply(df_train)
+
+import pickle
+pickle.dump(L_train, open("L_train.pickle","wb"))
+L_train=pickle.load(open("L_train.pickle","rb"))
 
 # Train the label model and compute the training labels
 label_model = LabelModel(cardinality=2, verbose=True)
@@ -158,7 +167,8 @@ df_train["label"] = label_model.predict(L=L_train, tie_break_policy="abstain")
 
 # %%
 df_train = df_train[df_train.label != ABSTAIN]
-
+df_train[:5]
+df_train.shape
 # %% [markdown]
 # Our ultimate goal is to use the resulting labeled training data points to train a machine learning model that can **generalize beyond the coverage of the labeling functions and the `LabelModel`**.
 # However first we'll explore some of Snorkel's other operators for building and managing training data.
