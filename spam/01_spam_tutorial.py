@@ -102,14 +102,14 @@
 
 # %% {"tags": ["md-exclude"]}
 # %matplotlib inline
-fp="/Users/robinlu/Library/CloudStorage/OneDrive-UNIPHORESOFTWARESYSTEMSPVTLTD/Data_Programming/snorkel-tutorials/"
+fp="/Users/robinlu/NLP/data_programming/snorkel-tutorials/"
 import os
 
 # Make sure we're running from the spam/ directory
-if os.path.basename(os.getcwd()) == "snorkel-tutorials":
-    os.chdir("spam")
-else: 
-    print (os.getcwd())
+# if os.path.basename(os.getcwd()) == "snorkel-tutorials":
+#     os.chdir("spam")
+# else: 
+#     print (os.getcwd())
 
 os.getcwd()
 os.chdir(fp+"spam")
@@ -126,7 +126,6 @@ os.environ["PYTHONHASHSEED"] = "0"
 # %% {"tags": ["md-exclude"]}
 import pandas as pd
 
-
 DISPLAY_ALL_TEXT = False
 
 pd.set_option("display.max_colwidth", 0 if DISPLAY_ALL_TEXT else 100)
@@ -141,7 +140,7 @@ pd.set_option("display.max_colwidth", 0 if DISPLAY_ALL_TEXT else 100)
 
 # %%
 import sys
-sys.path.insert(0, '/Users/robinlu/Library/CloudStorage/OneDrive-UNIPHORESOFTWARESYSTEMSPVTLTD/Data_Programming/snorkel-tutorials/spam')
+sys.path.insert(0, '/Users/robinlu/NLP/data_programming/snorkel-tutorials/spam')
 
 import utils as us
 
@@ -149,8 +148,16 @@ import utils as us
 
 df_train, df_test = us.load_spam_dataset()
 type(df_train)
+df_train.shape #1586
+df_test.shape #250
 df_train.columns #['author', 'date', 'text', 'label', 'video']
+df_train[:5]
+import pickle
+pickle.dump([df_train, df_test],open(fp+"/spam/spamdata.pickle","wb"))
+[df_train,df_test] = pickle.load(open(fp+"spam/spamdata.pickle", "rb"))
+
 # We pull out the label vectors for ease of use later
+print (df_train[:3])
 Y_test = df_test.label.values
 
 
@@ -228,7 +235,6 @@ df_train[["author", "text", "video"]].sample(20, random_state=2)
 
 # %%
 from snorkel.labeling import labeling_function
-
 
 @labeling_function()
 def check(x):
@@ -316,9 +322,9 @@ from snorkel.analysis import get_label_buckets
 L_train
 buckets = get_label_buckets(L_train[:, 0], L_train[:, 1])
 type(buckets)
-buckets
+buckets.keys()
 df_train.iloc[buckets[(ABSTAIN, SPAM)]].sample(10, random_state=1)
-
+df_train.iloc[buckets[(ABSTAIN, SPAM)]]["text"]
 # %% [markdown]
 # Most of these seem like small modifications of "check out", like "check me out" or "check it out".
 # Can we get the best of both worlds?
@@ -342,15 +348,23 @@ regex_check_out("checkout")
 # Again, let's generate our label matrices and see how we do.
 
 # %% {"tags": ["md-exclude-output"]}
-lfs = [check_out, check, regex_check_out]
+lfs1 = [check_out, check, regex_check_out]
 
-applier = PandasLFApplier(lfs=lfs)
-L_train = applier.apply(df=df_train)
+applier1 = PandasLFApplier(lfs=lfs1)
+L_train1 = applier1.apply(df=df_train)
+
 
 # %%
-ls1=LFAnalysis(L=L_train, lfs=lfs).lf_summary()
+ls1=LFAnalysis(L=L_train1, lfs=lfs1).lf_summary()
 ls1
 ls0
+
+lfs2 = [regex_check_out, check_out, check]
+
+applier2 = PandasLFApplier(lfs=lfs2)
+L_train2 = applier2.apply(df=df_train)
+ls2=LFAnalysis(L=L_train2, lfs=lfs2).lf_summary()
+ls2
 # %% [markdown]
 # We've split the difference in `train` set coverage—this looks promising!
 # Let's verify that we corrected our false positive from before.
@@ -363,7 +377,7 @@ ls0
 # %%
 buckets = get_label_buckets(L_train[:, 1], L_train[:, 2])
 df_train.iloc[buckets[(SPAM, ABSTAIN)]].sample(10, random_state=1)
-
+df_train.iloc[buckets[(SPAM, ABSTAIN)]]["text"]
 # %% [markdown]
 # Most of these are SPAM, but a good number are false positives.
 # **To keep precision high (while not sacrificing much in terms of coverage), we'd choose our regex-based rule.**
@@ -426,14 +440,14 @@ def textblob_subjectivity(x):
 # Let's apply our LFs so we can analyze their performance.
 
 # %% {"tags": ["md-exclude-output"]}
-lfs = [textblob_polarity, textblob_subjectivity]
+lfs3 = [textblob_polarity, textblob_subjectivity]
 
-applier = PandasLFApplier(lfs)
-L_train = applier.apply(df_train)
+applier3 = PandasLFApplier(lfs3)
+L_train3 = applier3.apply(df_train)
 
 # %%
-l2=LFAnalysis(L_train, lfs).lf_summary()
-l2
+l3=LFAnalysis(L_train3, lfs3).lf_summary()
+l3
 # %% [markdown]
 # **Again, these LFs aren't perfect—note that the `textblob_subjectivity` LF has fairly high coverage and could have a high rate of false positives. We'll rely on Snorkel's `LabelModel` to estimate the labeling function accuracies and reweight and combine their outputs accordingly.**
 
@@ -612,7 +626,11 @@ lfs = [
 # %% {"tags": ["md-exclude-output"]}
 applier = PandasLFApplier(lfs=lfs)
 L_train = applier.apply(df=df_train)
+type(L_train)
+L_train[0]
+len(L_train)
 L_test = applier.apply(df=df_test)
+len(L_test)
 
 # %%
 LFAnalysis(L=L_train, lfs=lfs).lf_summary()
@@ -625,14 +643,11 @@ LFAnalysis(L=L_train, lfs=lfs).lf_summary()
 import matplotlib.pyplot as plt
 
 # %matplotlib inline
-
-
 def plot_label_frequency(L):
     plt.hist((L != ABSTAIN).sum(axis=1), density=True, bins=range(L.shape[1]))
     plt.xlabel("Number of labels")
     plt.ylabel("Fraction of dataset")
     plt.show()
-
 
 plot_label_frequency(L_train)
 
@@ -647,7 +662,7 @@ plot_label_frequency(L_train)
 # [`MajorityLabelVoter` baseline model](https://snorkel.readthedocs.io/en/master/packages/_autosummary/labeling/snorkel.labeling.model.baselines.MajorityLabelVoter.html#snorkel.labeling.model.baselines.MajorityLabelVoter).
 
 # %% {"tags": ["md-exclude-output"]}
-from snorkel.labeling.model import MajorityLabelVoter
+from snorkel.labeling.model.baselines import MajorityLabelVoter
 
 majority_model = MajorityLabelVoter()
 preds_train = majority_model.predict(L=L_train)
