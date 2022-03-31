@@ -29,6 +29,8 @@ logging.basicConfig(level=logging.INFO)
 if os.path.basename(os.getcwd()) == "snorkel-tutorials":
     os.chdir("recsys")
 
+os.getcwd()
+os.chdir(os.getcwd()+"/snorkel-tutorials/recsys")
 
 # %% [markdown]
 # ## Loading Data
